@@ -6,13 +6,27 @@ from datetime import datetime
 import os
 
 class CoinManager:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(CoinManager, cls).__new__(cls)
+        return cls._instance
+
     def __init__(self, file_path, coin_range=(10, 50)):
+        # 如果已经初始化过，则不再执行初始化代码
+        if hasattr(self, 'initialized') and self.initialized:
+            return
+        
         script_dir = os.path.dirname(os.path.abspath(__file__))
         self.file_path = os.path.join(script_dir, file_path)
 
         self.coin_range = coin_range
         self.lock = asyncio.Lock()
         self.users = {}
+        
+        # 标记已经初始化
+        self.initialized = True
 
     @classmethod
     async def create(cls, file_path, coin_range=(10, 50)):
