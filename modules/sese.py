@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-import time
+import aiohttp
 from creart import create
 from graia.ariadne.app import Ariadne
 from graia.saya import Channel
@@ -11,7 +11,6 @@ from graia.ariadne.model.relationship import Member
 from graia.broadcast import Broadcast
 from graia.ariadne.message.element import Image
 from .blhx import allow_groups
-import requests
 import json
 from .coin_manager import CoinManager
 
@@ -27,20 +26,22 @@ bcc = create(Broadcast)
 loop = asyncio.get_event_loop()
 manager = loop.run_until_complete(CoinManager.create(r'../data/other/qq_coin.json', coin_range=(10, 100)))
 
-def get_sese(tags: list):
+async def get_sese(tags: list):
     url = 'https://api.lolicon.app/setu/v2'
     headers = {'Content-Type': 'application/json'}
-    proxies = {'http': 'http://127.0.0.1:7890'}
+    proxies = 'http://127.0.0.1:7890'
     print(tags)
-    time.sleep(0.5)
+    await asyncio.sleep(2)
     try:
-        data = json.dumps({'tag': tags})
-        response = requests.post(url, headers=headers, data=data, proxies=proxies) # 访问 api 并获取 json 数据
-        response_json = json.loads(response.text) # 将 json 数据解框
-        print(response_json)
-        img_url = response_json['data'][0]['urls']['original']
-        print(img_url)
-        img_bytes = requests.get(img_url, proxies=proxies).content # 获取图片数据
+        data = json.dumps({'tag': tags, 'size': 'regular'})
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, data=data, proxy=proxies) as response:
+                response_json = await response.json()
+                print(response_json)
+                img_url = response_json['data'][0]['urls']['regular']
+                print(img_url)
+                async with session.get(img_url, proxy=proxies) as img_response:
+                    img_bytes = await img_response.read()
     except:
         return (False, False if data == [] else True)
 
@@ -69,7 +70,7 @@ async def setu(app: Ariadne, group: Group, message: MessageChain, source: Source
             # 获取标签
             text = message.display
             tags = text.split()[1:] 
-            img_bytes, non_data = get_sese(tags)
+            img_bytes, non_data = await get_sese(tags)
 
             if img_bytes:
                 try:
