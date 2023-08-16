@@ -11,6 +11,7 @@ from pathlib import Path
 from graia.ariadne.message.element import Voice
 from .tools import sub_sentence_exist
 from .blhx import allow_groups
+from graia.ariadne.message.element import Image
 
 
 channel = Channel.current()
@@ -35,6 +36,12 @@ async def powerless(app: Ariadne, group: Group, message: MessageChain):
             else:
                 print('指定目录下没有文件！')
             await app.send_message(group, MessageChain(Voice(data_bytes=voice_bytes)))
+
+@bcc.receiver(GroupMessage)
+async def share_lucky(app: Ariadne, group: Group, message: MessageChain):
+    if group.id in allow_groups:
+        if message.display == '狗叫' :
+             await app.send_message(group, MessageChain(Image(path=Path("data", "imgs", "goujiao.jpg"))))
 
 @bcc.receiver(FriendMessage)
 async def send_ai_list(app: Ariadne, friend: Friend, message: MessageChain):
