@@ -23,7 +23,7 @@ class ConfigManager:
         self.groups = {}
         self.admin_list = []
         self.black_list = []
-        
+        self.groups_list = []
         # 标记已经初始化
         self.initialized = True
 
@@ -40,14 +40,18 @@ class ConfigManager:
                 async with aiofiles.open(self.file_path, 'r') as file:
                     content = await file.read()
                     data = json.loads(content)
-                    self.groups = data.get('users', {})
+                    self.groups = data.get('groups', {})
+                    self.groups_list = list(map(int, list(self.groups.keys()))) 
                     self.admin_list = data.get('admin', [])
                     self.black_list = data.get('black_list', [])
+                    self.features = data.get('features', [])
             except FileNotFoundError:
                 print(f"Data file not found at {self.file_path}. Initializing with default data.")
                 self.groups = {}
+                self.groups_list = []
                 self.admin_list = []
                 self.black_list = []
+                self.features = []
 
     async def save_data(self):
         async with self.lock:
@@ -55,21 +59,37 @@ class ConfigManager:
             async with aiofiles.open(self.file_path, 'w') as file:
                 await file.write(json.dumps({'users': self.groups,
                                              'admin': self.admin_list,
-                                             'black_list': self.black_list
+                                             'black_list': self.black_list,
+                                             'features': self.features
                                              }))
+    async def get_groups_list(self):
+        return self.groups_list
+    
+    async def add_group(self, group_id: int):
+        if group_id not in self.groups_list:
+            self.groups_list.append(group_id)
+            for item in self.features:
+                await self.update_group_feature(group_id, item, True)
+
+    async def del_group(self, group_id: int):
+        async with self.lock:
+            if group_id in self.groups_list:
+                self.groups_list.remove(group_id)
+                self.groups.pop(group_id)
+                await self.save_data()
 
     async def get_admin_list(self):
         return self.admin_list
 
-    async def add_admin(self, admin_name):
+    async def add_admin(self, admin_id: int):
         async with self.lock:
-            self.admin_list.append(admin_name)
+            self.admin_list.append(admin_id)
         await self.save_data()
 
-    async def remove_admin(self, admin_name):
+    async def remove_admin(self, admin_id: int):
         async with self.lock:
-            if admin_name in self.admin_list:
-                self.admin_list.remove(admin_name)
+            if admin_id in self.admin_list:
+                self.admin_list.remove(admin_id)
         await self.save_data()
 
     async def get_black_list(self):
@@ -86,12 +106,12 @@ class ConfigManager:
                 self.black_list.remove(user_name)
         await self.save_data()
 
-    async def get_group_features(self, group_name):
-        return self.groups.get(group_name, {})
+    async def get_group_features(self, group_id: int):
+        return self.groups.get(str(group_id), {})
 
-    async def update_group_feature(self, group_name, feature_name, value):
+    async def update_group_feature(self, group_id: int, feature_name: str, value: bool):
         async with self.lock:
-            if group_name not in self.groups:
-                self.groups[group_name] = {}
-            self.groups[group_name][feature_name] = value
+            if group_id not in self.groups:
+                self.groups[group_id] = {}
+            self.groups[group_id][feature_name] = value
         await self.save_data()

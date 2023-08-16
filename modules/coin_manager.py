@@ -45,8 +45,9 @@ class CoinManager:
 
     async def save_data(self):
         async with self.lock:
+            os.makedirs(os.path.dirname(self.file_path), exist_ok=True)  # Create parent directory
             async with aiofiles.open(self.file_path, 'w') as file:
-                await file.write(json.dumps({'users': list(self.users.values())}))
+                await file.write(json.dumps({'users': list(self.users.values())}, indent=4))
 
     async def sign_in(self, qq, current_time) -> int:
         " request QQ number and current time, if the QQ not in data, will make a record and set a initiation coins"
@@ -91,9 +92,3 @@ class CoinManager:
                     'last_sign_in': current_time_str
                 }
         await self.save_data()
-
-# Example usage
-# manager = CoinManager(r'../data/other/qq_coin.json', coin_range=(10, 50))
-# manager.sign_in(2591212935, datetime.now())
-# coins = manager.get_coins(2591212935)
-# print(f'User 2591212935 has {coins} coins.')
