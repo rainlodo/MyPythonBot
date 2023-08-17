@@ -10,9 +10,8 @@ from graia.ariadne.message.chain import MessageChain
 from graia.ariadne.model import Group
 from graia.ariadne.model.relationship import Member
 from graia.broadcast import Broadcast
-from .blhx import allow_groups
 from .Coin_manager import CoinManager
-
+from .Config_manager import ConfigManager
 
 channel = Channel.current()
 channel.name("发病")
@@ -24,8 +23,8 @@ bcc = create(Broadcast)
 
 # 初始化 CoinManager
 loop = asyncio.get_event_loop()
-manager = loop.run_until_complete(CoinManager.create(r'../data/other/qq_coin.json', coin_range=(10, 100)))
-
+coin_manager = loop.run_until_complete(CoinManager.create(r'../data/other/qq_coin.json', coin_range=(10, 100)))
+conf_manager = loop.run_until_complete(ConfigManager.create(r'../data/other/config.json'))
 with open(Path("data", "other", "FDcentences.txt"), 'r', encoding="utf-8") as f:
   lines = f.readlines()
 
@@ -41,10 +40,10 @@ for line in lines:
 @bcc.receiver(GroupMessage)
 async def fabing(app: Ariadne, group: Group, message: MessageChain, source: Source, member: Member):
     "use QQ number to sign_in to get coins"
-    if group.id in allow_groups:
+    if group.id in await conf_manager.get_groups_list():
         sender = member.id
         try:
-            current_coins = await manager.get_coins(sender)
+            current_coins = await coin_manager.get_coins(sender)
         except:
             current_coins = 0
         if message.display[:3] == "#发病" and current_coins > 1:
