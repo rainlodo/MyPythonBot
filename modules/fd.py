@@ -11,7 +11,7 @@ from graia.ariadne.model import Group
 from graia.ariadne.model.relationship import Member
 from graia.broadcast import Broadcast
 from .blhx import allow_groups
-from .coin_manager import CoinManager
+from .Coin_manager import CoinManager
 
 
 channel = Channel.current()
