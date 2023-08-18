@@ -45,6 +45,7 @@ class ConfigManager:
                     self.admin_list = data.get('admin', [])
                     self.black_list = data.get('black_list', [])
                     self.features = data.get('features', [])
+                    self.picture_size = data.get('picture_size', "small")
             except FileNotFoundError:
                 print(f"Data file not found at {self.file_path}. Initializing with default data.")
                 self.groups = {}
@@ -52,6 +53,7 @@ class ConfigManager:
                 self.admin_list = []
                 self.black_list = []
                 self.features = []
+                self.picture_size = "small"
 
     async def save_data(self):
         async with self.lock:
@@ -60,8 +62,15 @@ class ConfigManager:
                 await file.write(json.dumps({'users': self.groups,
                                              'admin': self.admin_list,
                                              'black_list': self.black_list,
-                                             'features': self.features
+                                             'features': self.features,
+                                             'picture_size': self.picture_size
                                              }))
+    async def get_picture_size(self):
+        return self.picture_size         
+
+    async def set_picture_size(self, picture_size: str):
+        self.picture_size = picture_size
+           
     async def get_groups_list(self):
         return self.groups_list
     
