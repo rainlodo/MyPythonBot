@@ -69,25 +69,31 @@ async def query(key: str, hash_data):
             async with session.get(url) as response:
                 response_json = await response.json()
                 result_data = response_json["data"]
-                if len(result_data) > 1:  # 不要模糊搜索的结果
-                    return False
-                
-                result_data = result_data[0]
-                name = result_data['name']
-                hash_val = result_data['hash']
-                flag = await check_hash(hash_val, name, hash_data)
-                img_url = base_url + result_data["path"]
-                relative_path = Path("data", "ba", result_data["path"][1:])
-                save_path = (script_path.parent / relative_path).resolve()
-                os.makedirs(os.path.dirname(save_path), exist_ok=True)  # Create parent directory
+                if len(result_data) == 1:  # 精准查询
+                    result_data = result_data[0]
+                    name = result_data['name']
+                    hash_val = result_data['hash']
+                    flag = await check_hash(hash_val, name, hash_data)
+                    img_url = base_url + result_data["path"]
+                    relative_path = Path("data", "ba", result_data["path"][1:])
+                    save_path = (script_path.parent / relative_path).resolve()
+                    os.makedirs(os.path.dirname(save_path), exist_ok=True)  # Create parent directory
 
-                if not flag or not os.path.exists(save_path):  # Only download if hash is different or file doesn't exist
-                        async with session.get(img_url) as img_response:
-                            if img_response.status == 200:
-                                img_bytes = await img_response.read()
-                                with open(save_path, 'wb') as f:
-                                    f.write(img_bytes)
-                return save_path
+                    if not flag or not os.path.exists(save_path):  # Only download if hash is different or file doesn't exist
+                            async with session.get(img_url) as img_response:
+                                if img_response.status == 200:
+                                    img_bytes = await img_response.read()
+                                    with open(save_path, 'wb') as f:
+                                        f.write(img_bytes)
+                    return (1, save_path)
+                elif len(result_data) > 1:
+                    message = ''
+                    for i in result_data:
+                        message += str(i['name']) + '\n'
+                    message = message[:-1]
+                    return (2, message)
+                return (False, False)
+                
 
     except Exception as e:
         print(e)
@@ -105,11 +111,13 @@ async def ba_query(app: Ariadne, group: Group, message: MessageChain, source: So
             # 获取标签
             text = message.display
             key = text.split()[1]
-            print(key)
+            # print(key)
             if key != '':
-                path = await query(key, hash_data)
-                if path:
-                    print(path)
-                    await app.send_message(group, MessageChain(Image(path=str(path))), quote=source)
+                result = await query(key, hash_data)
+                if result[0]:
+                    if result[0] == 1:
+                        await app.send_message(group, MessageChain(Image(path=str(result[1]))), quote=source)
+                    else:
+                        await app.send_message(group, MessageChain("请尝试使用以下关键词重试\n" + result[1]), quote=source)
                 else:
                     await app.send_message(group, MessageChain("无法查询到你需要的攻略"), quote=source)
