@@ -30,17 +30,18 @@ conf_manager = loop.run_until_complete(ConfigManager.create(r'../data/other/conf
 async def get_sese(tags: list):
     url = 'https://api.lolicon.app/setu/v2'
     headers = {'Content-Type': 'application/json'}
-    # proxies = 'http://127.0.0.1:7890'
+    proxies = 'http://127.0.0.1:2080'
     # print(tags)
     # await asyncio.sleep(0.5)
     try:
-        data = json.dumps({'tag': tags, 'size': ['small', 'original'], 'proxy':'https://pixiv.rainlodo.xyz'})
+        picture_size = await conf_manager.get_picture_size()
+        data = json.dumps({'tag': tags, 'size': [picture_size, 'original'], 'proxy':'https://pixiv.rainlodo.xyz'})
         response_json = {}
         async with aiohttp.ClientSession() as session:
             async with session.post(url, headers=headers, data=data) as response:
                 response_json = await response.json()
                 print(response_json)
-                img_url = response_json['data'][0]['urls']['small']
+                img_url = response_json['data'][0]['urls'][picture_size]
                 # print(img_url)
                 async with session.get(img_url) as img_response:
                     img_bytes = await img_response.read()
