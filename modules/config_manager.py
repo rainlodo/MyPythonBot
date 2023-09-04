@@ -24,6 +24,8 @@ class ConfigManager:
         self.admin_list = []
         self.black_list = []
         self.groups_list = []
+        self.picture_size = ''
+        self.features = []
         # 标记已经初始化
         self.initialized = True
 
@@ -59,7 +61,7 @@ class ConfigManager:
         async with self.lock:
             os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
             async with aiofiles.open(self.file_path, 'w') as file:
-                await file.write(json.dumps({'users': self.groups,
+                await file.write(json.dumps({'groups': self.groups,
                                              'admin': self.admin_list,
                                              'black_list': self.black_list,
                                              'features': self.features,
