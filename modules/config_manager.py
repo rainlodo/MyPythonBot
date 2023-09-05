@@ -22,7 +22,7 @@ class ConfigManager:
         self.lock = asyncio.Lock()
         self.groups = {}
         self.admin_list = []
-        self.black_list = []
+        self.black_list = [] # 黑名单(QQ)
         self.groups_list = []
         self.picture_size = ''
         self.features = []
@@ -66,7 +66,8 @@ class ConfigManager:
                                              'black_list': self.black_list,
                                              'features': self.features,
                                              'picture_size': self.picture_size
-                                             }))
+                                             }, indent=4)) # indent=4 使文件更加易于阅读和理解
+                
     async def get_picture_size(self):
         return self.picture_size         
 
@@ -86,7 +87,7 @@ class ConfigManager:
         async with self.lock:
             if group_id in self.groups_list:
                 self.groups_list.remove(group_id)
-                self.groups.pop(group_id)
+                self.groups.pop(str(group_id)) # 在 groups 中以 str(group_id) 为 key
                 await self.save_data()
 
     async def get_admin_list(self):
@@ -94,7 +95,8 @@ class ConfigManager:
 
     async def add_admin(self, admin_id: int):
         async with self.lock:
-            self.admin_list.append(admin_id)
+            if admin_id not in self.admin_list:
+                self.admin_list.append(admin_id)
         await self.save_data()
 
     async def remove_admin(self, admin_id: int):
@@ -106,15 +108,16 @@ class ConfigManager:
     async def get_black_list(self):
         return self.black_list
 
-    async def add_to_black_list(self, user_name):
+    async def add_to_black_list(self, user_id):
         async with self.lock:
-            self.black_list.append(user_name)
+            if user_id not in self.black_list:
+                self.black_list.append(user_id)
         await self.save_data()
 
-    async def remove_from_black_list(self, user_name):
+    async def remove_from_black_list(self, user_id):
         async with self.lock:
-            if user_name in self.black_list:
-                self.black_list.remove(user_name)
+            if user_id in self.black_list:
+                self.black_list.remove(user_id)
         await self.save_data()
 
     async def get_group_features(self, group_id: int):
@@ -124,5 +127,7 @@ class ConfigManager:
         async with self.lock:
             if group_id not in self.groups:
                 self.groups[group_id] = {}
+            if feature_name not in self.features:
+                self.features.append(feature_name)
             self.groups[group_id][feature_name] = value
         await self.save_data()
