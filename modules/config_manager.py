@@ -20,10 +20,10 @@ class ConfigManager:
         self.file_path = os.path.join(script_dir, file_path)
 
         self.lock = asyncio.Lock()
-        self.groups = {}
+        self.groups = {} # key 为群号的字符串
         self.admin_list = []
         self.black_list = [] # 黑名单(QQ)
-        self.groups_list = []
+        self.groups_list = [] # int 群号
         self.picture_size = ''
         self.features = []
         # 标记已经初始化
@@ -72,7 +72,9 @@ class ConfigManager:
         return self.picture_size         
 
     async def set_picture_size(self, picture_size: str):
-        self.picture_size = picture_size
+        async with self.lock:
+            self.picture_size = picture_size
+        await self.save_data()
            
     async def get_groups_list(self):
         return self.groups_list
@@ -82,13 +84,14 @@ class ConfigManager:
             self.groups_list.append(group_id)
             for item in self.features:
                 await self.update_group_feature(group_id, item, True)
+            await self.save_data()
 
     async def del_group(self, group_id: int):
         async with self.lock:
             if group_id in self.groups_list:
                 self.groups_list.remove(group_id)
                 self.groups.pop(str(group_id)) # 在 groups 中以 str(group_id) 为 key
-                await self.save_data()
+        await self.save_data()
 
     async def get_admin_list(self):
         return self.admin_list
@@ -125,9 +128,15 @@ class ConfigManager:
 
     async def update_group_feature(self, group_id: int, feature_name: str, value: bool):
         async with self.lock:
-            if group_id not in self.groups:
-                self.groups[group_id] = {}
+            if str(group_id) not in self.groups:
+                self.groups[str(group_id)] = {}
             if feature_name not in self.features:
-                self.features.append(feature_name)
-            self.groups[group_id][feature_name] = value
+                self.add_feature(feature_name)
+            self.groups[str(group_id)][feature_name] = value
         await self.save_data()
+
+    async def get_feature_list(self) -> list:
+        return self.features
+    
+    async def add_feature(self,feature_name: str):
+        self.features.append(feature_name)
