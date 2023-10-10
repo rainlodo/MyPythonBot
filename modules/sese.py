@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+import io
 import aiohttp
 from creart import create
 from graia.ariadne.app import Ariadne
@@ -13,6 +14,7 @@ from graia.ariadne.message.element import Image
 import json
 from .Coin_manager import CoinManager
 from .Config_manager import ConfigManager
+from .tools import rotate_180
 
 
 channel = Channel.current()
@@ -30,14 +32,15 @@ conf_manager = loop.run_until_complete(ConfigManager.create(r'../data/other/conf
 async def get_sese(tags: list):
     url = 'https://api.lolicon.app/setu/v2'
     headers = {'Content-Type': 'application/json'}
-    proxies = 'http://127.0.0.1:2080'
+    # proxies = 'http://127.0.0.1:17890'
     # print(tags)
     # await asyncio.sleep(0.5)
     try:
         picture_size = await conf_manager.get_picture_size()
-        data = json.dumps({'tag': tags, 'size': [picture_size, 'original'], 'proxy':'https://pixiv.rainlodo.xyz'})
-        response_json = {}
+        data = json.dumps({'tag': tags, 'size': [picture_size, 'original'], 'proxy':'https://pixiv.rainlodo.xyz'}) # 发送给 api 的数据
+        response_json = {} # 用于存储 api 返回的数据
         async with aiohttp.ClientSession() as session:
+            # async with session.post(url, headers=headers, data=data, proxy=proxies) as response:
             async with session.post(url, headers=headers, data=data) as response:
                 response_json = await response.json()
                 print(response_json)
@@ -46,9 +49,9 @@ async def get_sese(tags: list):
                 async with session.get(img_url) as img_response:
                     img_bytes = await img_response.read()
     except:
-        return (False, False if data == [] else True, None if response_json == {} else response_json)
+        return (False, False if response_json == {} else response_json)
 
-    return (img_bytes, True, response_json)
+    return (img_bytes, response_json)
 
 @bcc.receiver(GroupMessage)
 async def sign_in(app: Ariadne, group: Group, message: MessageChain, source: Source, member: Member):
@@ -81,31 +84,39 @@ async def setu(app: Ariadne, group: Group, message: MessageChain, source: Source
             text = text.replace("#来份", "")
             tags = text.split()
 
-            img_bytes, non_data, meta_data = await get_sese(tags)
             try:
+                img_bytes, meta_data = await get_sese(tags) # meta_data 包括图片的作者、标签、标题等元信息
                 t = meta_data['data'][0]
                 addition_msg = f"title: {t['title']}\npid: {t['pid']}\nauthor: {t['author']}\ntags: {', '.join(t['tags'])}\nurl: {t['urls']['original']}"
             except:
                 pass
+
             if img_bytes:
                 try:
                     event = await app.send_message(group, MessageChain(Image(data_bytes=img_bytes), addition_msg), quote=source)
                 except:
                     await app.send_message(group, MessageChain("发送失败,稍后再试！"), quote=source)
-            else:
-                if ~non_data:
-                    await app.send_message(group, MessageChain("tag 搜索结果为空，请使用其他 tag 继续！"), quote=source)
-                else:
-                    await app.send_message(group, MessageChain("网络异常,稍后再试！"), quote=source)
+                    event.source.id = 0
+                    # image = img.open(io.BytesIO(img_bytes))
+                    # await app.send_message(group, MessageChain(Image(data_bytes=image.transpose(Image.ROTATE_180))), quote=source)
 
-            try:
                 if event.source.id > 0:
                     await coin_manager.set_coins(sender, current_coins - 10)
                 else:
-                    await app.send_message(group, MessageChain(f"涩图被傻呗腾讯吃了，现在不给硬币了（别问为什么），请重试。\nurl: {t['urls']['original']}"), quote=source)
-                    await coin_manager.set_coins(sender, current_coins)
-            except:
-                print(Exception)
+                    await app.send_message(group, MessageChain(f"涩图被傻呗腾讯吃了，当前图片信息如下。\n\n{addition_msg}\n\n硬币+5"), quote=source)
+                    await coin_manager.set_coins(sender, current_coins + 5)
+                    try:
+                        t = await app.send_message(group, MessageChain(Image(data_bytes=await rotate_180(img_bytes, 'png'))), quote=source)
+                    except:
+                        await app.send_message(group, MessageChain("重发失败"))
+
+            else:
+                    if meta_data:
+                        await app.send_message(group, MessageChain("tag 搜索结果为空，请使用其他 tag 继续！"), quote=source)
+                    else:
+                        await app.send_message(group, MessageChain("网络异常！"), quote=source)
+
+
 
         elif  message.display[:3] == "#来份" and current_coins < 10:
-            await app.send_message(group, MessageChain("当前硬币余额为 {}，硬币余额不足 10，请获取更多硬币后重试。\ntips:为什么不试试签到呢？(#签到)".format(current_coins)), quote=source)
+                await app.send_message(group, MessageChain("当前硬币余额为 {}，硬币余额不足 10，请获取更多硬币后重试。\ntips:为什么不试试签到呢？(#签到)".format(current_coins)), quote=source)
