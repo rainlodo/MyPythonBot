@@ -63,9 +63,11 @@ async def query(key: str, hash_data):
     base_url = 'https://arona.cdn.diyigemt.com/image'
     url = 'https://arona.diyigemt.com/api/v1/image?name='
     url = url + key
+    # proxies = 'http://127.0.0.1:17890'
     try:
         response_json = {}
         async with aiohttp.ClientSession() as session:
+            # async with session.get(url, proxy=proxies) as response:
             async with session.get(url) as response:
                 response_json = await response.json()
                 result_data = response_json["data"]
@@ -80,6 +82,7 @@ async def query(key: str, hash_data):
                     os.makedirs(os.path.dirname(save_path), exist_ok=True)  # Create parent directory
 
                     if not flag or not os.path.exists(save_path):  # Only download if hash is different or file doesn't exist
+                            # async with session.get(img_url, proxy=proxies) as img_response:
                             async with session.get(img_url) as img_response:
                                 if img_response.status == 200:
                                     img_bytes = await img_response.read()
