@@ -22,6 +22,7 @@ channel.author("rainlodo")
 bcc = create(Broadcast)
 loop = asyncio.get_event_loop()
 conf_manager = loop.run_until_complete(ConfigManager.create(r'../data/other/config.json'))
+coin_manager = loop.run_until_complete(CoinManager.create(r'../data/other/qq_coin.json', coin_range=(10, 100)))
 
 async def admin_controller(command: str, target_id: int):
     if command == 'remove':
@@ -111,3 +112,35 @@ async def command_receiver(app: Ariadne, group: Group, message: MessageChain, so
             + '#set picture_size [original regular small thumb mini] [修改全局图片尺寸]\n'\
             + '#set add_black/del_black qq [添加或移除黑名单]\n'
             await app.send_message(group, MessageChain(content), quote=source)
+
+## coins ##
+
+async def give_coins(giver_id: int, receiver_id: int, coins: int) -> int:
+    "返回 int 用于判断，-1 给予者不存在， 0 给予成功， 1 硬币数异常， 2接收者不存在"
+    if giver_id in await coin_manager.get_users():
+        if receiver_id in await coin_manager.get_users():
+            if coins > 0 and isinstance(coins, int):
+                t1 = await coin_manager.get_coins(giver_id)
+                if t1 > coins:
+                    await coin_manager.change_coins(giver_id, -coins)
+                    await coin_manager.change_coins(receiver_id, coins)
+                    return 0
+            else:
+                return 1
+        else:
+            return 2
+    return -1
+
+# @bcc.receiver(GroupMessage)
+# async def coin_command_receiver(app: Ariadne, group: Group, message: MessageChain, source: Source, member: Member):
+#     "#give receiver_id coins"
+#     black_list = await conf_manager.get_black_list()
+#     if message.display[:5] == '#give':
+#         if member.id not in black_list:
+#             sentence = message.display
+#             sentence = sentence.replace("#give", "")
+#             command_list = sentence.split()
+#             command_list[0] = command_list[0][1:]
+#             print(command_list)
+#             if int(command_list[0]) not in black_list:
+#                 flag = await give_coins(member.id, int(command_list[0][1:]))

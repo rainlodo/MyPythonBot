@@ -13,9 +13,9 @@ from graia.saya import Saya
 app = Ariadne(
     config(
         3040461314,  # 账号
-        "INITKEYnVrcgUZK",  # 验证钥
-        HttpClientConfig("http://localhost:8080"),  # HTTP 配置
-        #WebsocketClientConfig("http://localhost:13254"),  # WebSocket 配置
+        "eyJhbG145736",  # 验证钥
+        HttpClientConfig("http://localhost:13254"),  # HTTP 配置
+        WebsocketClientConfig("http://localhost:13254"),  # WebSocket 配置
     )
 )
 

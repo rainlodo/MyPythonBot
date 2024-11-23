@@ -49,7 +49,7 @@ class CoinManager:
             async with aiofiles.open(self.file_path, 'w') as file:
                 await file.write(json.dumps({'users': list(self.users.values())}, indent=4))
 
-    async def sign_in(self, qq, current_time) -> int:
+    async def sign_in(self, qq: int, current_time) -> int:
         " request QQ number and current time, if the QQ not in data, will make a record and set a initiation coins"
         qq = str(qq)
         current_time_str = current_time.strftime('%Y-%m-%d')
@@ -72,13 +72,13 @@ class CoinManager:
         await self.save_data()
         return get_coins
 
-    async def get_coins(self, qq) -> int:
+    async def get_coins(self, qq: int) -> int:
         " request a QQ number, return the number's coins"
         qq = str(qq)
         async with self.lock:
             return self.users.get(qq, {}).get('coins', 0)
 
-    async def set_coins(self, qq, coins):
+    async def set_coins(self, qq: int, coins: int):
         " request a QQ number and a count of coins, it will change the coins data of the QQ number"
         qq = str(qq)
         async with self.lock:
@@ -92,3 +92,13 @@ class CoinManager:
                     'last_sign_in': current_time_str
                 }
         await self.save_data()
+
+    async def change_coins(self, qq: int, coins: int):
+        async with self.lock:
+            result_coins = await self.get_coins(qq) + coins
+        await self.set_coins(qq, result_coins)
+        
+
+
+    async def get_users(self):
+        return self.users

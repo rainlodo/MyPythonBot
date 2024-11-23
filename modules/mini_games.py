@@ -10,9 +10,8 @@ from graia.ariadne.model import Group, Friend
 from graia.ariadne.model.relationship import Member
 from graia.broadcast import Broadcast
 from graia.ariadne.message.element import Image
-from .blhx import allow_groups
-from .coin_manager import CoinManager
-
+from .Coin_manager import CoinManager
+from .Config_manager import ConfigManager
 
 channel = Channel.current()
 channel.name("some games")
@@ -23,4 +22,5 @@ bcc = create(Broadcast)
 
 # 初始化 CoinManager
 loop = asyncio.get_event_loop()
-manager = loop.run_until_complete(CoinManager.create(r'../data/other/qq_coin.json', coin_range=(10, 100)))
+coin_manager = loop.run_until_complete(CoinManager.create(r'../data/other/qq_coin.json', coin_range=(10, 100)))
+conf_manager = loop.run_until_complete(ConfigManager.create(r'../data/other/config.json'))

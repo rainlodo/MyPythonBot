@@ -1,0 +1,8 @@
+/modules/__pycache__
+/data/other/*
+/modules/test*
+/data/ba
+/.vscode/
+data/other/ba_image_hash.json
+/modules/test.py
+modules/test.py

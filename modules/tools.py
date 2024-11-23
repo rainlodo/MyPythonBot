@@ -3,7 +3,8 @@ import threading
 from typing import Union
 from pathlib import Path
 from datetime import datetime, time, timedelta
-
+from PIL import Image
+from io import BytesIO
 
 def read_yaml_return_value(path:Union[str, Path], key:Union[str, list]):
     " 返回指定的 yml 文件中指定键 key 的値 "
@@ -21,8 +22,13 @@ def sub_sentence_exist(sentence:str, sub_key:list):
     for item in sub_key:
         if item in sentence:
             return True
-        
     return False
+
+def list_to_str(_list: list) -> str:
+    t = ''
+    for i in _list:
+        t += i + ' '
+    return t
 
 class refresh_item_everyday:
     " 一个能够在每天刷新 data 的 class, 默认 0 点刷新 "
@@ -54,3 +60,10 @@ class refresh_item_everyday:
         return time_until_refresh
     
 
+async def rotate_180(img_bytes: bytes, type: str) -> bytes:
+    " 返回一个旋转 180° 且格式为 type 的图片字节流"
+    img = Image.open(BytesIO(img_bytes), 'r')
+    img_t = img.transpose(Image.ROTATE_180)
+    t = BytesIO()
+    img_t.save(t, format=type)
+    return t.getvalue()
